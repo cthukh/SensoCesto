@@ -25,13 +25,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.myappl.data.ConnectionStatus
@@ -122,7 +121,15 @@ fun TrashScreen(
             // 2. Main Capacity & Hero Dashboard Card
             MainStatusHeroCard(state = state)
 
-            // 3. Quick Action Controls Grid
+            // 3. Hardware Proximity Sensor & Phone Integration
+            ProximitySensorCard(
+                state = state,
+                onToggleHardwareSensor = { viewModel.toggleHardwareSensor() },
+                onSimulateNear = { viewModel.simulateNearProximity() },
+                onSimulateFar = { viewModel.simulateFarProximity() }
+            )
+
+            // 4. Quick Action Controls Grid
             ControlActionsCard(
                 state = state,
                 onToggleLock = { viewModel.toggleLock() },
@@ -131,18 +138,10 @@ fun TrashScreen(
                 onSimulateProximity = { viewModel.simulateProximitySensor() }
             )
 
-            // 4. Fill Level Custom Slider & Quick Presets
+            // 5. Fill Level Custom Slider & Quick Presets
             FillLevelCard(
                 fillLevel = state.fillLevel,
                 onLevelChange = { viewModel.setFillLevel(it) }
-            )
-
-            // 5. Hardware Proximity Sensor & Monitor
-            ProximitySensorCard(
-                state = state,
-                onToggleHardwareSensor = { viewModel.toggleHardwareSensor() },
-                onSimulateNear = { viewModel.simulateNearProximity() },
-                onSimulateFar = { viewModel.simulateFarProximity() }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -192,6 +191,7 @@ fun ConnectionStatusCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
+                    modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
@@ -210,7 +210,9 @@ fun ConnectionStatusCard(
                     Text(
                         text = statusText,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
@@ -265,12 +267,13 @@ fun ConnectionStatusCard(
 
 @Composable
 fun MainStatusHeroCard(state: TrashState) {
-    val isFull = state.fillLevel >= 90 || state.isObjectNear
+    // Red alert triggers ONLY when capacity reaches 90% or more!
+    val isFull = state.fillLevel >= 90
 
     // Animated Gauge Color & Level
     val gaugeColor by animateColorAsState(
         targetValue = when {
-            state.fillLevel >= 85 || state.isObjectNear -> StatusRed
+            state.fillLevel >= 90 -> StatusRed
             state.fillLevel >= 50 -> StatusYellow
             else -> StatusGreen
         },
@@ -312,7 +315,10 @@ fun MainStatusHeroCard(state: TrashState) {
                 Text(
                     text = "Capacidad del Basurero",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
 
                 if (isFull) {
@@ -401,14 +407,15 @@ fun MainStatusHeroCard(state: TrashState) {
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = if (isFull) "Lleno" else "Capacidad",
+                        text = if (isFull) "¡LLENO!" else "Capacidad",
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (isFull) StatusRed else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = if (isFull) FontWeight.Bold else FontWeight.Normal
                     )
                 }
             }
 
-            // Full Warning Banner when >= 90%
+            // Full Warning Banner ONLY when capacity >= 90%
             AnimatedVisibility(
                 visible = isFull,
                 enter = fadeIn() + expandVertically(),
@@ -431,10 +438,7 @@ fun MainStatusHeroCard(state: TrashState) {
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
-                            text = if (state.isObjectNear)
-                                "🛑 ¡Sensor Detecta Objeto Cerca! El basurero requiere vaciado urgente."
-                            else
-                                "⚠️ Nivel crítico al ${state.fillLevel}%. Se recomienda vaciar el contenedor.",
+                            text = "⚠️ Nivel crítico al ${state.fillLevel}%. El basurero requiere vaciado urgente.",
                             color = Color.White,
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Bold
@@ -536,6 +540,7 @@ fun ControlActionsCard(
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -547,7 +552,9 @@ fun ControlActionsCard(
                 Text(
                     text = "Controles y Automatización",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
@@ -715,13 +722,16 @@ fun FillLevelCard(
                 Text(
                     text = "Nivel de Llenado",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = "$fillLevel%",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = if (fillLevel >= 90) StatusRed else MaterialTheme.colorScheme.primary
                 )
             }
 
@@ -738,8 +748,8 @@ fun FillLevelCard(
                 valueRange = 0f..100f,
                 steps = 19,
                 colors = SliderDefaults.colors(
-                    thumbColor = MaterialTheme.colorScheme.primary,
-                    activeTrackColor = MaterialTheme.colorScheme.primary
+                    thumbColor = if (fillLevel >= 90) StatusRed else MaterialTheme.colorScheme.primary,
+                    activeTrackColor = if (fillLevel >= 90) StatusRed else MaterialTheme.colorScheme.primary
                 )
             )
 
@@ -769,16 +779,20 @@ fun RowScope.PresetChip(
         onClick = onClick,
         modifier = Modifier.weight(1f),
         contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
-        border = if (selected) BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary) else null,
+        border = if (selected) BorderStroke(1.5.dp, if (level >= 90) StatusRed else MaterialTheme.colorScheme.primary) else null,
         colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
+            containerColor = if (selected) {
+                if (level >= 90) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer
+            } else Color.Transparent
         )
     ) {
         Text(
             text = label,
             fontSize = 10.sp,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-            color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+            color = if (selected) {
+                if (level >= 90) StatusRed else MaterialTheme.colorScheme.onPrimaryContainer
+            } else MaterialTheme.colorScheme.onSurface
         )
     }
 }
@@ -794,51 +808,90 @@ fun ProximitySensorCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.elevatedCardColors(
-            containerColor = if (state.isObjectNear) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
-            else MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // Header Row with proper weight and un-colliding chip
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
+                    modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Sensors,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
                     )
                     Text(
-                        text = "Sensor Físico del Teléfono",
+                        text = "Sensor de Proximidad",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 
                 if (state.isObjectNear) {
-                    Badge(containerColor = StatusRed) {
-                        Text(
-                            "¡OBJETO DETECTADO!",
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                    SuggestionChip(
+                        onClick = {},
+                        label = {
+                            Text(
+                                "DETECTADO",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp
+                            )
+                        },
+                        icon = {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        },
+                        colors = SuggestionChipDefaults.suggestionChipColors(
+                            containerColor = StatusGreen.copy(alpha = 0.2f),
+                            labelColor = StatusGreen,
+                            iconContentColor = StatusGreen
                         )
-                    }
+                    )
                 }
             }
 
-            Text(
-                text = "Utiliza el sensor de proximidad real de tu smartphone para simular la detección del basurero lleno al 100%.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            // Highlighting tip card for real hardware testing
+            Surface(
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.TouchApp,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        text = "📲 ¡PRUEBA EN VIVO!: Acerca tu mano a la parte superior del teléfono para que la tapa abra automáticamente.",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
 
             HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
 
@@ -850,21 +903,22 @@ fun ProximitySensorCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Sensor Hardware (Escuchando)",
+                        text = "Sensor Hardware del Smartphone",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold
                     )
                     val statusText = if (!state.isHardwareSensorAvailable) {
-                        "No disponible en este modelo (Usar Botones de Simulación)"
+                        "No disponible en este modelo (Usar botones de simulación abajo)"
                     } else if (state.isHardwareSensorEnabled) {
-                        if (state.proximityDistance >= 0) "Lectura actual: ${state.proximityDistance} cm" else "Activo y detectando"
+                        if (state.proximityDistance >= 0) "Lectura en vivo: ${state.proximityDistance} cm" else "Escuchando en tiempo real 👂"
                     } else {
                         "Desactivado"
                     }
                     Text(
                         text = statusText,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (state.isHardwareSensorEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = if (state.isHardwareSensorEnabled) FontWeight.Bold else FontWeight.Normal
                     )
                 }
                 Switch(
@@ -877,7 +931,7 @@ fun ProximitySensorCard(
             // Detection Banner
             Surface(
                 shape = RoundedCornerShape(16.dp),
-                color = if (state.isObjectNear) StatusRed else MaterialTheme.colorScheme.primaryContainer,
+                color = if (state.isObjectNear) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -886,25 +940,25 @@ fun ProximitySensorCard(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Icon(
-                        imageVector = if (state.isObjectNear) Icons.Default.Warning else Icons.Default.CheckCircle,
+                        imageVector = if (state.isObjectNear) Icons.Default.CheckCircle else Icons.Default.Sensors,
                         contentDescription = null,
-                        tint = if (state.isObjectNear) Color.White else MaterialTheme.colorScheme.onPrimaryContainer,
+                        tint = if (state.isObjectNear) StatusGreen else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(22.dp)
                     )
                     Text(
                         text = if (state.isObjectNear)
-                            "Estado: Objeto Detectado Cerca 🛑 -> ¡Basurero Lleno!"
+                            "Estado: Presencia Cerca 🟢 -> ¡Tapa Abierta!"
                         else
-                            "Estado: Normal (Sin objetos cercanos) 🟢",
+                            "Estado: Normal (Sin presencia cercana)",
                         fontWeight = FontWeight.Bold,
-                        color = if (state.isObjectNear) Color.White else MaterialTheme.colorScheme.onPrimaryContainer,
+                        color = if (state.isObjectNear) StatusGreen else MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 13.sp
                     )
                 }
             }
 
             Text(
-                text = "Simulación Manual del Sensor:",
+                text = "Probar o Simular por Botones:",
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold
             )
@@ -918,11 +972,11 @@ fun ProximitySensorCard(
                     onClick = onSimulateNear,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = StatusRed)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Sensors, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Objeto Cerca (Lleno)", fontSize = 11.sp)
+                    Text("Presencia Cerca", fontSize = 11.sp)
                 }
 
                 OutlinedButton(
@@ -932,32 +986,7 @@ fun ProximitySensorCard(
                 ) {
                     Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Objeto Lejos", fontSize = 11.sp)
-                }
-            }
-
-            // Tip Box
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Icon(
-                        Icons.Default.Info,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Text(
-                        text = "Consejo: En un smartphone real, acerca la mano al auricular (parte superior) para activar la prueba física.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Text("Sin Presencia", fontSize = 11.sp)
                 }
             }
         }
