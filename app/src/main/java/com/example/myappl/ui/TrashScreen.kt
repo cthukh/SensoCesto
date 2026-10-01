@@ -60,6 +60,14 @@ fun TrashScreen(
             // Main Status Dashboard Card
             MainStatusCard(state = state)
 
+            // Hardware & Simulated Proximity Sensor Card
+            ProximitySensorCard(
+                state = state,
+                onToggleHardwareSensor = { viewModel.toggleHardwareSensor() },
+                onSimulateNear = { viewModel.simulateNearProximity() },
+                onSimulateFar = { viewModel.simulateFarProximity() }
+            )
+
             // Fill Level Slider & Controls for simulation / Arduino connection
             FillLevelCard(
                 fillLevel = state.fillLevel,
@@ -185,6 +193,156 @@ fun MainStatusCard(state: TrashState) {
                 StatusItem(label = "Tapa", value = lidStatusText)
                 StatusItem(label = "Seguro", value = lockStatusText)
                 StatusItem(label = "Capacidad", value = "${state.fillLevel}%")
+            }
+        }
+    }
+}
+
+@Composable
+fun ProximitySensorCard(
+    state: TrashState,
+    onToggleHardwareSensor: () -> Unit,
+    onSimulateNear: () -> Unit,
+    onSimulateFar: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (state.isObjectNear) MaterialTheme.colorScheme.errorContainer
+            else MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "📡 Sensor de Proximidad",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                if (state.isObjectNear) {
+                    Badge(containerColor = MaterialTheme.colorScheme.error) {
+                        Text(
+                            "¡OBJETO DETECTADO CERCA!",
+                            color = MaterialTheme.colorScheme.onError,
+                            modifier = Modifier.padding(4.dp)
+                        )
+                    }
+                }
+            }
+
+            Text(
+                text = "Detecta objetos cerca del teléfono para simular que el basurero está lleno al límite.",
+                style = MaterialTheme.typography.bodySmall
+            )
+
+            HorizontalDivider()
+
+            // Estado del Sensor Físico del Hardware
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Sensor Físico del Teléfono", fontWeight = FontWeight.Medium)
+                    val statusText = if (!state.isHardwareSensorAvailable) {
+                        "No disponible en este dispositivo (Usar Simulación)"
+                    } else if (state.isHardwareSensorEnabled) {
+                        if (state.proximityDistance >= 0) "Lectura: ${state.proximityDistance} cm" else "Activo y escuchando"
+                    } else {
+                        "Desactivado"
+                    }
+                    Text(
+                        text = statusText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = state.isHardwareSensorEnabled,
+                    onCheckedChange = { onToggleHardwareSensor() },
+                    enabled = state.isHardwareSensorAvailable
+                )
+            }
+
+            // Indicador de Detección de Objeto
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (state.isObjectNear) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.primaryContainer
+                )
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = if (state.isObjectNear) Icons.Default.Warning else Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = if (state.isObjectNear) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Text(
+                        text = if (state.isObjectNear)
+                            "Estado: Objeto Cerca 🛑 -> ¡Basurero Lleno al 100%!"
+                        else
+                            "Estado: Sin objetos cerca (Normal) 🟢",
+                        fontWeight = FontWeight.Bold,
+                        color = if (state.isObjectNear) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onPrimaryContainer,
+                        fontSize = 13.sp
+                    )
+                }
+            }
+
+            Text(
+                text = "Prueba & Simulación del Sensor:",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = onSimulateNear,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Objeto Cerca (Lleno)", fontSize = 11.sp)
+                }
+
+                OutlinedButton(
+                    onClick = onSimulateFar,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Objeto Lejos", fontSize = 11.sp)
+                }
+            }
+
+            Surface(
+                color = MaterialTheme.colorScheme.surface,
+                shape = MaterialTheme.shapes.small,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "💡 Para probar con el sensor real del teléfono: Acerca tu mano a la parte superior de la pantalla (área del auricular) o utiliza los controles de sensores en el emulador (Extended Controls -> Sensors -> Proximity).",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(8.dp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

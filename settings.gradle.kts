@@ -22,6 +22,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "My Appl"
+rootProject.name = "CensoSesto"
 include(":app")
  

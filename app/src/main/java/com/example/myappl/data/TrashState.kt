@@ -5,6 +5,10 @@ data class TrashState(
     val isLocked: Boolean = false,
     val isLidOpen: Boolean = false,
     val isProximityModeActive: Boolean = true,
+    val isHardwareSensorEnabled: Boolean = true,
+    val isHardwareSensorAvailable: Boolean = false,
+    val isObjectNear: Boolean = false,
+    val proximityDistance: Float = -1f,
     val connectionStatus: ConnectionStatus = ConnectionStatus.CONNECTED_SIMULATED,
     val lastUpdate: String = "Hace un momento"
 )
