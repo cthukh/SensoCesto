@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -26,62 +27,245 @@ fun TrashScreen(
     onRequestNotificationPermission: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
-    val scrollState = rememberScrollState()
+    var selectedTab by remember { mutableStateOf(0) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Basurero Autónomo IoT", fontWeight = FontWeight.Bold) },
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primaryContainer),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.DeleteOutline,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Text("CensoSesto IoT", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
                 ),
                 actions = {
-                    IconButton(onClick = onRequestNotificationPermission) {
-                        Icon(Icons.Default.Notifications, contentDescription = "Permiso de Notificaciones")
+                    IconButton(
+                        onClick = onRequestNotificationPermission,
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.Notifications,
+                            contentDescription = "Permiso de Notificaciones",
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
                     }
                 }
             )
+        },
+        bottomBar = {
+            NavigationBar(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                tonalElevation = 8.dp
+            ) {
+                NavigationBarItem(
+                    icon = { Icon(Icons.Default.Dashboard, contentDescription = "Estado") },
+                    label = { Text("Estado", fontWeight = FontWeight.Medium) },
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 }
+                )
+                NavigationBarItem(
+                    icon = { Icon(Icons.Default.Tune, contentDescription = "Sensores y Control") },
+                    label = { Text("Sensores", fontWeight = FontWeight.Medium) },
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 }
+                )
+                NavigationBarItem(
+                    icon = { Icon(Icons.Default.Cloud, contentDescription = "Conexión IoT") },
+                    label = { Text("Conexión", fontWeight = FontWeight.Medium) },
+                    selected = selectedTab == 2,
+                    onClick = { selectedTab = 2 }
+                )
+            }
         }
     ) { innerPadding ->
-        Column(
+        Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(scrollState)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(innerPadding),
+            color = MaterialTheme.colorScheme.background
         ) {
-            // Connection Banner Card
-            ConnectionStatusCard(connectionStatus = state.connectionStatus, onStatusChange = {
-                viewModel.setConnectionStatus(it)
-            })
+            when (selectedTab) {
+                0 -> DashboardTab(state = state, onLevelChange = { viewModel.setFillLevel(it) })
+                1 -> SensorsControlTab(
+                    state = state,
+                    onToggleHardwareSensor = { viewModel.toggleHardwareSensor() },
+                    onSimulateNear = { viewModel.simulateNearProximity() },
+                    onSimulateFar = { viewModel.simulateFarProximity() },
+                    onToggleLock = { viewModel.toggleLock() },
+                    onToggleLid = { viewModel.toggleLid() },
+                    onToggleProximityMode = { viewModel.toggleProximityMode() }
+                )
+                2 -> IoTConnectionTab(
+                    connectionStatus = state.connectionStatus,
+                    onStatusChange = { viewModel.setConnectionStatus(it) }
+                )
+            }
+        }
+    }
+}
 
-            // Main Status Dashboard Card
-            MainStatusCard(state = state)
+@Composable
+fun DashboardTab(state: TrashState, onLevelChange: (Int) -> Unit) {
+    val scrollState = rememberScrollState()
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        // Modern Welcome Header Banner
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+        ) {
+            Row(
+                modifier = Modifier.padding(20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.AutoDelete,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        "CensoSesto Inteligente",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Text(
+                        "Sistema autónomo de gestión de residuos IoT",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                    )
+                }
+            }
+        }
 
-            // Hardware & Simulated Proximity Sensor Card
-            ProximitySensorCard(
-                state = state,
-                onToggleHardwareSensor = { viewModel.toggleHardwareSensor() },
-                onSimulateNear = { viewModel.simulateNearProximity() },
-                onSimulateFar = { viewModel.simulateFarProximity() }
-            )
+        // Main Status Dashboard Card
+        MainStatusCard(state = state)
 
-            // Fill Level Slider & Controls for simulation / Arduino connection
-            FillLevelCard(
-                fillLevel = state.fillLevel,
-                onLevelChange = { viewModel.setFillLevel(it) }
-            )
+        // Fill Level Slider & Controls
+        FillLevelCard(fillLevel = state.fillLevel, onLevelChange = onLevelChange)
+    }
+}
 
-            // Manual Actions & Proximity Trigger
-            ControlActionsCard(
-                state = state,
-                onToggleLock = { viewModel.toggleLock() },
-                onToggleLid = { viewModel.toggleLid() },
-                onToggleProximityMode = { viewModel.toggleProximityMode() },
-                onSimulateProximity = { viewModel.simulateProximitySensor() }
-            )
+@Composable
+fun SensorsControlTab(
+    state: TrashState,
+    onToggleHardwareSensor: () -> Unit,
+    onSimulateNear: () -> Unit,
+    onSimulateFar: () -> Unit,
+    onToggleLock: () -> Unit,
+    onToggleLid: () -> Unit,
+    onToggleProximityMode: () -> Unit
+) {
+    val scrollState = rememberScrollState()
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        // Proximity Sensor Card
+        ProximitySensorCard(
+            state = state,
+            onToggleHardwareSensor = onToggleHardwareSensor,
+            onSimulateNear = onSimulateNear,
+            onSimulateFar = onSimulateFar
+        )
+
+        // Control Actions Card
+        ControlActionsCard(
+            state = state,
+            onToggleLock = onToggleLock,
+            onToggleLid = onToggleLid,
+            onToggleProximityMode = onToggleProximityMode
+        )
+    }
+}
+
+@Composable
+fun IoTConnectionTab(
+    connectionStatus: ConnectionStatus,
+    onStatusChange: (ConnectionStatus) -> Unit
+) {
+    val scrollState = rememberScrollState()
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        ConnectionStatusCard(connectionStatus = connectionStatus, onStatusChange = onStatusChange)
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        "Información de Red e IoT",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+                Text(
+                    "CensoSesto se comunica en tiempo real mediante protocolos inalambricos con microcontroladores ESP32 y sincroniza métricas de capacidad con bases de datos en la nube (Firebase).",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
@@ -100,50 +284,65 @@ fun ConnectionStatusCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(20.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
                     Box(
                         modifier = Modifier
-                            .size(12.dp)
+                            .size(14.dp)
                             .clip(CircleShape)
                             .background(color)
                     )
-                    Text(text = text, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        text = text,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            Text(text = "Simular Conexión a Futuro (Firebase & Arduino):", style = MaterialTheme.typography.labelMedium)
-            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Seleccionar Tipo de Conexión:",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(10.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 OutlinedButton(
                     onClick = { onStatusChange(ConnectionStatus.CONNECTED_SIMULATED) },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Simulador", fontSize = 11.sp)
+                    Text("Simulador", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
                 OutlinedButton(
                     onClick = { onStatusChange(ConnectionStatus.CONNECTED_ARDUINO) },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Arduino", fontSize = 11.sp)
+                    Text("Arduino", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
                 OutlinedButton(
                     onClick = { onStatusChange(ConnectionStatus.CONNECTING_FIREBASE) },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Firebase", fontSize = 11.sp)
+                    Text("Firebase", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -158,14 +357,15 @@ fun MainStatusCard(state: TrashState) {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isFull) MaterialTheme.colorScheme.errorContainer
             else MaterialTheme.colorScheme.primaryContainer
         )
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -179,12 +379,17 @@ fun MainStatusCard(state: TrashState) {
                 )
                 if (isFull) {
                     Badge(containerColor = MaterialTheme.colorScheme.error) {
-                        Text("¡LLENO AL LÍMITE!", color = MaterialTheme.colorScheme.onError, modifier = Modifier.padding(4.dp))
+                        Text(
+                            "¡LLENO AL LÍMITE!",
+                            color = MaterialTheme.colorScheme.onError,
+                            modifier = Modifier.padding(6.dp),
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }
 
-            HorizontalDivider()
+            HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -199,6 +404,63 @@ fun MainStatusCard(state: TrashState) {
 }
 
 @Composable
+fun StatusItem(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+fun FillLevelCard(fillLevel: Int, onLevelChange: (Int) -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "Nivel de llenado del Basurero",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "Actual: $fillLevel% (Simulación sensor ultrasónico / peso)",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Slider(
+                value = fillLevel.toFloat(),
+                onValueChange = { onLevelChange(it.toInt()) },
+                valueRange = 0f..100f,
+                steps = 19
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("0% (Vacío)", style = MaterialTheme.typography.labelSmall)
+                Text("90% (Límite Alerta)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                Text("100% (Lleno)", style = MaterialTheme.typography.labelSmall)
+            }
+        }
+    }
+}
+
+@Composable
 fun ProximitySensorCard(
     state: TrashState,
     onToggleHardwareSensor: () -> Unit,
@@ -207,14 +469,15 @@ fun ProximitySensorCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (state.isObjectNear) MaterialTheme.colorScheme.errorContainer
             else MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -229,9 +492,10 @@ fun ProximitySensorCard(
                 if (state.isObjectNear) {
                     Badge(containerColor = MaterialTheme.colorScheme.error) {
                         Text(
-                            "¡OBJETO DETECTADO CERCA!",
+                            "¡OBJETO DETECTADO!",
                             color = MaterialTheme.colorScheme.onError,
-                            modifier = Modifier.padding(4.dp)
+                            modifier = Modifier.padding(4.dp),
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
@@ -239,12 +503,13 @@ fun ProximitySensorCard(
 
             Text(
                 text = "Detecta objetos cerca del teléfono para simular que el basurero está lleno al límite.",
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             HorizontalDivider()
 
-            // Estado del Sensor Físico del Hardware
+            // Sensor Físico
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -253,7 +518,7 @@ fun ProximitySensorCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Sensor Físico del Teléfono", fontWeight = FontWeight.Medium)
                     val statusText = if (!state.isHardwareSensorAvailable) {
-                        "No disponible en este dispositivo (Usar Simulación)"
+                        "No disponible (Usar simulación)"
                     } else if (state.isHardwareSensorEnabled) {
                         if (state.proximityDistance >= 0) "Lectura: ${state.proximityDistance} cm" else "Activo y escuchando"
                     } else {
@@ -272,18 +537,19 @@ fun ProximitySensorCard(
                 )
             }
 
-            // Indicador de Detección de Objeto
+            // Indicador de Estado de Objeto
             Card(
                 modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = if (state.isObjectNear) MaterialTheme.colorScheme.error
                     else MaterialTheme.colorScheme.primaryContainer
                 )
             ) {
                 Row(
-                    modifier = Modifier.padding(12.dp),
+                    modifier = Modifier.padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Icon(
                         imageVector = if (state.isObjectNear) Icons.Default.Warning else Icons.Default.CheckCircle,
@@ -292,9 +558,9 @@ fun ProximitySensorCard(
                     )
                     Text(
                         text = if (state.isObjectNear)
-                            "Estado: Objeto Cerca 🛑 -> ¡Basurero Lleno al 100%!"
+                            "Estado: Objeto Cerca 🛑 -> ¡Lleno al 100%!"
                         else
-                            "Estado: Sin objetos cerca (Normal) 🟢",
+                            "Estado: Sin objetos cerca 🟢",
                         fontWeight = FontWeight.Bold,
                         color = if (state.isObjectNear) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onPrimaryContainer,
                         fontSize = 13.sp
@@ -303,84 +569,35 @@ fun ProximitySensorCard(
             }
 
             Text(
-                text = "Prueba & Simulación del Sensor:",
+                text = "Simulación y Pruebas:",
                 style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.Bold
             )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Button(
                     onClick = onSimulateNear,
                     modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
                     Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Objeto Cerca (Lleno)", fontSize = 11.sp)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Objeto Cerca", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
 
                 OutlinedButton(
                     onClick = onSimulateFar,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(14.dp)
                 ) {
                     Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Objeto Lejos", fontSize = 11.sp)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Objeto Lejos", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
-            }
-
-            Surface(
-                color = MaterialTheme.colorScheme.surface,
-                shape = MaterialTheme.shapes.small,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "💡 Para probar con el sensor real del teléfono: Acerca tu mano a la parte superior de la pantalla (área del auricular) o utiliza los controles de sensores en el emulador (Extended Controls -> Sensors -> Proximity).",
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(8.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun StatusItem(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(text = value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-    }
-}
-
-@Composable
-fun FillLevelCard(fillLevel: Int, onLevelChange: (Int) -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(text = "Nivel de llenado del Basurero", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(text = "Actual: $fillLevel% (Simulación de Sensor ultrasónico / Peso)", style = MaterialTheme.typography.bodySmall)
-
-            Slider(
-                value = fillLevel.toFloat(),
-                onValueChange = { onLevelChange(it.toInt()) },
-                valueRange = 0f..100f,
-                steps = 19
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("0% (Vacío)", style = MaterialTheme.typography.labelSmall)
-                Text("90% (Límite Alerta)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
-                Text("100% (Lleno)", style = MaterialTheme.typography.labelSmall)
             }
         }
     }
@@ -391,15 +608,21 @@ fun ControlActionsCard(
     state: TrashState,
     onToggleLock: () -> Unit,
     onToggleLid: () -> Unit,
-    onToggleProximityMode: () -> Unit,
-    onSimulateProximity: () -> Unit
+    onToggleProximityMode: () -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp)
+    ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(text = "Controles y Automatización", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(
+                text = "Controles y Automatización",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
 
             // Proximity Switch
             Row(
@@ -408,8 +631,8 @@ fun ControlActionsCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Sensor de Proximidad Automático", fontWeight = FontWeight.Medium)
-                    Text("Abre la tapa al detectar presencia cercana", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Apertura por Proximidad", fontWeight = FontWeight.Medium)
+                    Text("Abre la tapa automáticamente al detectar presencia", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Switch(
                     checked = state.isProximityModeActive,
@@ -422,13 +645,14 @@ fun ControlActionsCard(
             // Action Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 // Lid button
                 Button(
                     onClick = onToggleLid,
                     enabled = !state.isLocked,
                     modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (state.isLidOpen) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
                     )
@@ -438,14 +662,15 @@ fun ControlActionsCard(
                         contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(if (state.isLidOpen) "Cerrar Tapa" else "Abrir Tapa", fontSize = 12.sp)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(if (state.isLidOpen) "Cerrar Tapa" else "Abrir Tapa", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
 
                 // Lock button
                 Button(
                     onClick = onToggleLock,
                     modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (state.isLocked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondaryContainer,
                         contentColor = if (state.isLocked) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onSecondaryContainer
@@ -456,27 +681,17 @@ fun ControlActionsCard(
                         contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(if (state.isLocked) "Desbloquear" else "Bloquear", fontSize = 12.sp)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(if (state.isLocked) "Desbloquear" else "Bloquear", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
-            }
-
-            // Simulate Proximity trigger button
-            OutlinedButton(
-                onClick = onSimulateProximity,
-                enabled = state.isProximityModeActive && !state.isLocked,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Simular Detección de Proximidad (Arduino / Sensor)")
             }
 
             if (state.isLocked) {
                 Text(
                     text = "⚠️ El basurero está bloqueado. La tapa no puede abrirse.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
+                    color = MaterialTheme.colorScheme.error,
+                    fontWeight = FontWeight.Medium
                 )
             }
         }
