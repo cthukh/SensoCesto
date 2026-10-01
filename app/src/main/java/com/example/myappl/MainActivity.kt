@@ -11,7 +11,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
 import com.example.myappl.ui.TrashScreen
-import com.example.myappl.ui.theme.MyApplTheme
+import com.example.myappl.ui.theme.SensoCestoTheme
 import com.example.myappl.viewmodel.TrashViewModel
 
 class MainActivity : ComponentActivity() {
@@ -29,7 +29,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            MyApplTheme {
+            SensoCestoTheme {
                 TrashScreen(
                     viewModel = trashViewModel,
                     onRequestNotificationPermission = {

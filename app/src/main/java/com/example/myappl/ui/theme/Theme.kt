@@ -9,35 +9,56 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = EcoEmerald400,
+    onPrimary = EcoEmerald900,
+    primaryContainer = EcoEmerald900,
+    onPrimaryContainer = EcoEmerald100,
+    secondary = EcoTeal400,
+    onSecondary = EcoTeal900,
+    secondaryContainer = EcoTeal900,
+    onSecondaryContainer = EcoTeal100,
+    background = DarkBackground,
+    onBackground = DarkOnSurface,
+    surface = DarkSurface,
+    onSurface = DarkOnSurface,
+    surfaceVariant = DarkSurfaceVariant,
+    onSurfaceVariant = DarkOnSurfaceVariant,
+    error = StatusRed,
+    errorContainer = DarkStatusRedContainer,
+    onErrorContainer = StatusRedContainer
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    primary = EcoEmerald600,
+    onPrimary = LightSurface,
+    primaryContainer = EcoEmerald100,
+    onPrimaryContainer = EcoEmerald900,
+    secondary = EcoTeal600,
+    onSecondary = LightSurface,
+    secondaryContainer = EcoTeal100,
+    onSecondaryContainer = EcoTeal900,
+    background = LightBackground,
+    onBackground = LightOnSurface,
+    surface = LightSurface,
+    onSurface = LightOnSurface,
+    surfaceVariant = LightSurfaceVariant,
+    onSurfaceVariant = LightOnSurfaceVariant,
+    error = StatusRed,
+    errorContainer = StatusRedContainer,
+    onErrorContainer = StatusRed
 )
 
 @Composable
-fun MyApplTheme(
+fun SensoCestoTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -45,9 +66,19 @@ fun MyApplTheme(
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
+    }
+
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val activity = view.context as? Activity
+            if (activity != null) {
+                activity.window.statusBarColor = colorScheme.background.toArgb()
+                WindowCompat.getInsetsController(activity.window, view).isAppearanceLightStatusBars = !darkTheme
+            }
+        }
     }
 
     MaterialTheme(
@@ -55,4 +86,13 @@ fun MyApplTheme(
         typography = Typography,
         content = content
     )
+}
+
+@Composable
+fun MyApplTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    dynamicColor: Boolean = false,
+    content: @Composable () -> Unit
+) {
+    SensoCestoTheme(darkTheme = darkTheme, dynamicColor = dynamicColor, content = content)
 }
